@@ -1,4 +1,4 @@
-(function() { 
+(function() {
   'use strict';
 
   let queue = window.fathom.q || [];
@@ -6,6 +6,8 @@
     'siteId': '',
     'trackerUrl': '',
   };
+  let turbolinksSetup = false;
+
   const commands = {
     "set": set,
     "trackPageview": trackPageview,
@@ -37,7 +39,7 @@
 
   function getCookie(name) {
     var cookies = document.cookie ? document.cookie.split('; ') : [];
-    
+
     for (var i = 0; i < cookies.length; i++) {
       var parts = cookies[i].split('=');
       if (decodeURIComponent(parts[0]) !== name) {
@@ -69,7 +71,7 @@
 
   function newVisitorData() {
     return {
-      isNewVisitor: true, 
+      isNewVisitor: true,
       isNewSession: true,
       pagesViewed: [],
       previousPageviewId: '',
@@ -97,7 +99,7 @@
       data.isNewSession = true;
     }
 
-    return data;  
+    return data;
   }
 
   function findTrackerUrl() {
@@ -105,26 +107,32 @@
     return el ? el.src.replace('tracker.js', 'collect') : '';
   }
 
-  function trackPageview(vars) { 
+  function trackPageview(vars) {
     vars = vars || {};
 
-    // Respect "Do Not Track" requests
-    if('doNotTrack' in navigator && navigator.doNotTrack === "1") {
-      return;
-    }
+    console.log("fathom: trackPageview");
 
     // ignore prerendered pages
     if( 'visibilityState' in document && document.visibilityState === 'prerender' ) {
       return;
     }
 
-    // if <body> did not load yet, try again at dom ready event
-    if( document.body === null ) {
-      document.addEventListener("DOMContentLoaded", () => {
+    // document.addEventListener("DOMContentLoaded", () => {
+    if (turbolinksSetup == false) {
+      console.log("fathom: setting up turbolinks:load");
+      document.addEventListener("turbolinks:load", () => {
+        console.log("fathom: turbolinks:load fired");
         trackPageview(vars);
       })
+      turbolinksSetup = true;
+    }
+
+    // if <body> did not load yet, try again at dom ready event
+    if( document.body === null ) {
       return;
     }
+
+    console.log("fathom: proceeding");
 
     //  parse request, use canonical if there is one
     let req = window.location;
@@ -143,7 +151,7 @@
       // use parsed canonical as location object
       req = a;
     }
-    
+
     let path = vars.path || ( req.pathname + req.search );
     if(!path) {
       path = '/';
@@ -166,11 +174,12 @@
       h: hostname,
       r: referrer,
       u: data.pagesViewed.indexOf(path) == -1 ? 1 : 0,
-      nv: data.isNewVisitor ? 1 : 0, 
+      nv: data.isNewVisitor ? 1 : 0,
       ns: data.isNewSession ? 1 : 0,
       sid: config.siteId,
     };
 
+    console.log("fathom: appending image");
     let url = config.trackerUrl || findTrackerUrl()
     let img = document.createElement('img');
     img.setAttribute('alt', '');
@@ -193,19 +202,19 @@
       // remove tracking img from DOM
       document.body.removeChild(img)
     });
-    
+
     // in case img.onload never fires, remove img after 1s & reset src attribute to cancel request
-    window.setTimeout(() => { 
+    window.setTimeout(() => {
       if(!img.parentNode) {
         return;
       }
 
-      img.src = ''; 
+      img.src = '';
       document.body.removeChild(img)
     }, 1000);
 
     // add to DOM to fire request
-    document.body.appendChild(img);  
+    document.body.appendChild(img);
   }
 
   // override global fathom object
