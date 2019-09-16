@@ -110,8 +110,6 @@
   function trackPageview(vars) {
     vars = vars || {};
 
-    console.log("fathom: trackPageview");
-
     // ignore prerendered pages
     if( 'visibilityState' in document && document.visibilityState === 'prerender' ) {
       return;
@@ -119,9 +117,7 @@
 
     // document.addEventListener("DOMContentLoaded", () => {
     if (turbolinksSetup == false) {
-      console.log("fathom: setting up turbolinks:load");
       document.addEventListener("turbolinks:load", () => {
-        console.log("fathom: turbolinks:load fired");
         trackPageview(vars);
       })
       turbolinksSetup = true;
@@ -131,8 +127,6 @@
     if( document.body === null ) {
       return;
     }
-
-    console.log("fathom: proceeding");
 
     //  parse request, use canonical if there is one
     let req = window.location;
@@ -179,7 +173,6 @@
       sid: config.siteId,
     };
 
-    console.log("fathom: appending image");
     let url = config.trackerUrl || findTrackerUrl()
     let img = document.createElement('img');
     img.setAttribute('alt', '');
